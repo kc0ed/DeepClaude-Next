@@ -403,6 +403,50 @@
         </div>
     </template>
 
+    <!-- 添加供应商对话框 -->
+    <div class="modal fade" id="add-provider-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加供应商</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-provider-form">
+                        <div class="mb-3">
+                            <label for="provider-key" class="form-label">供应商标识 (唯一 key)</label>
+                            <input type="text" class="form-control" id="provider-key" placeholder="例如: dmxapi, deepseek, volcengine" />
+                            <div class="form-text">用于在配置中标识此供应商，不可重复，推荐使用英文/短横线格式。</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="provider-name" class="form-label">展示名称</label>
+                            <input type="text" class="form-control" id="provider-name" placeholder="例如: DMX API 中转站" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="provider-base-url" class="form-label">Base URL</label>
+                            <input type="text" class="form-control" id="provider-base-url" placeholder="例如: https://api.example.com" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="provider-api-path" class="form-label">API 请求地址</label>
+                            <input type="text" class="form-control" id="provider-api-path" placeholder="例如: v1/chat/completions" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="provider-format" class="form-label">模型格式</label>
+                            <select class="form-select" id="provider-format">
+                                <option value="openai">OpenAI 兼容</option>
+                                <option value="anthropic">Anthropic</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="confirm-add-provider">添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 添加模型对话框 -->
     <div class="modal fade" id="add-model-modal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">

@@ -7,10 +7,12 @@ let configData = {};
 let isDirty = false; // 标记是否有未保存的更改
 const originalPageTitle = document.title;
 
-// 模态框和选项元素
+ // 模态框和选项元素
 const addModelModal = new bootstrap.Modal(document.getElementById('add-model-modal'));
 const confirmDeleteModal = new bootstrap.Modal(document.getElementById('confirm-delete-modal'));
 const importConfigModal = new bootstrap.Modal(document.getElementById('import-config-modal'));
+const addProviderModalElement = document.getElementById('add-provider-modal');
+const addProviderModal = addProviderModalElement ? new bootstrap.Modal(addProviderModalElement) : null;
 const deleteModelNameSpan = document.getElementById('delete-model-name');
 const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
 const addModelForm = document.getElementById('add-model-form');
@@ -27,13 +29,14 @@ const configPreviewContent = document.getElementById('config-preview-content');
 const confirmImportBtn = document.getElementById('confirm-import-btn');
 const loaderOverlay = document.getElementById('loader-overlay');
 
-// 模型容器
+ // 模型容器
 const reasonerModelsContainer = document.getElementById('reasoner-models-container');
 const targetModelsContainer = document.getElementById('target-models-container');
 const compositeModelsContainer = document.getElementById('composite-models-container');
 
-// 供应商相关容器
+// 供应商相关容器和按钮
 const providersContainer = document.getElementById('providers-container');
+const addProviderBtn = document.getElementById('add-provider-btn');
 
 // 添加模型按钮
 const addReasonerModelBtn = document.getElementById('add-reasoner-model-btn');
@@ -86,6 +89,64 @@ function initConfig() {
 
     // 绑定确认删除按钮事件
     confirmDeleteBtn.addEventListener('click', handleDeleteModel);
+
+    // 绑定添加供应商按钮：使用统一 Modal 交互
+    if (addProviderBtn && addProviderModal && providersContainer) {
+        const addProviderForm = document.getElementById('add-provider-form');
+        const providerKeyInput = document.getElementById('provider-key');
+        const providerNameInput = document.getElementById('provider-name');
+        const providerBaseUrlInput = document.getElementById('provider-base-url');
+        const providerApiPathInput = document.getElementById('provider-api-path');
+        const providerFormatSelect = document.getElementById('provider-format');
+        const confirmAddProviderBtn = document.getElementById('confirm-add-provider');
+
+        const resetProviderForm = () => {
+            if (addProviderForm) addProviderForm.reset();
+        };
+
+        addProviderBtn.addEventListener('click', () => {
+            resetProviderForm();
+            addProviderModal.show();
+        });
+
+        if (confirmAddProviderBtn) {
+            confirmAddProviderBtn.addEventListener('click', () => {
+                if (!configData.providers) {
+                    configData.providers = {};
+                }
+
+                const rawKey = (providerKeyInput.value || '').trim();
+                if (!rawKey) {
+                    showToast('请填写供应商标识（例如 dmxapi、deepseek）', 'warning');
+                    return;
+                }
+                const key = rawKey;
+                if (configData.providers[key]) {
+                    showToast(`供应商 ${key} 已存在`, 'warning');
+                    return;
+                }
+
+                const displayName = (providerNameInput.value || key).trim();
+                const baseUrl = (providerBaseUrlInput.value || '').trim();
+                const apiPath = (providerApiPathInput.value || '').trim();
+                const modelFormat = providerFormatSelect.value || 'openai';
+
+                configData.providers[key] = {
+                    display_name: displayName || key,
+                    base_url: baseUrl,
+                    api_request_address: apiPath,
+                    model_format: modelFormat,
+                    proxy_open: false,
+                    models: {}
+                };
+
+                addProviderModal.hide();
+                renderProviders();
+                setDirty(true);
+                showToast(`供应商 ${key} 已添加`, 'success');
+            });
+        }
+    }
 
     // 监听所有表单输入变化
     document.getElementById('config-page').addEventListener('input', () => {
@@ -638,48 +699,129 @@ function addAllowOriginInput(value = '') {
 * }
 */
 function renderProviders() {
-   if (!providersContainer) return;
+    if (!providersContainer) return;
 
-   const providers = (configData.providers) || {};
-   providersContainer.innerHTML = '';
+    const providers = (configData.providers) || {};
+    providersContainer.innerHTML = '';
 
-   const keys = Object.keys(providers);
-   if (keys.length === 0) {
-       const empty = document.createElement('div');
-       empty.className = 'alert alert-secondary';
-       empty.textContent = '当前还没有配置任何供应商。你可以继续使用下方旧版推理/目标模型配置，或后续通过更新版本使用统一供应商配置。';
-       providersContainer.appendChild(empty);
-       return;
-   }
+    const keys = Object.keys(providers);
+    if (keys.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'alert alert-secondary';
+        empty.textContent = '当前还没有配置任何供应商。你可以继续使用下方旧版推理/目标模型配置，或点击上方“添加供应商”开始使用统一配置。';
+        providersContainer.appendChild(empty);
+        return;
+    }
 
-   keys.forEach((name) => {
-       const p = providers[name] || {};
-       const card = document.createElement('div');
-       card.className = 'card mb-3';
+    keys.forEach((name) => {
+        const p = providers[name] || {};
+        const card = document.createElement('div');
+        card.className = 'card mb-3';
 
-       const header = document.createElement('div');
-       header.className = 'card-header d-flex justify-content-between align-items-center';
-       header.innerHTML = `
-           <div>
-               <strong>${p.display_name || name}</strong>
-               <span class="badge bg-light text-dark ms-2">${name}</span>
-           </div>
-       `;
-       card.appendChild(header);
+        const header = document.createElement('div');
+        header.className = 'card-header d-flex justify-content-between align-items-center';
+        header.innerHTML = `
+            <div>
+                <strong>${p.display_name || name}</strong>
+                <span class="badge bg-light text-dark ms-2">${name}</span>
+            </div>
+            <div>
+                <button class="btn btn-sm btn-outline-danger js-delete-provider" data-provider="${name}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+        card.appendChild(header);
 
-       const body = document.createElement('div');
-       body.className = 'card-body small text-muted';
-       body.innerHTML = `
-           <div class="mb-1"><strong>Base URL:</strong> ${p.base_url || '-'}</div>
-           <div class="mb-1"><strong>API 地址:</strong> ${p.api_request_address || '-'}</div>
-           <div class="mb-1"><strong>模型格式:</strong> ${p.model_format || 'openai'}</div>
-           <div class="mb-1"><strong>模型数量:</strong> ${Object.keys(p.models || {}).length}</div>
-           <div class="text-muted">（当前版本仅展示 providers 配置，保持与旧版配置完全兼容。后续版本将在此处提供完整编辑能力。）</div>
-       `;
-       card.appendChild(body);
+        const body = document.createElement('div');
+        body.className = 'card-body small';
+        body.innerHTML = `
+            <div class="row g-2 mb-2">
+                <div class="col-md-4">
+                    <label class="form-label">Base URL</label>
+                    <input type="text" class="form-control form-control-sm js-provider-base-url" value="${p.base_url || ''}" placeholder="https://api.example.com">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">API 请求地址</label>
+                    <input type="text" class="form-control form-control-sm js-provider-api-path" value="${p.api_request_address || ''}" placeholder="v1/chat/completions">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">模型格式</label>
+                    <select class="form-select form-select-sm js-provider-format">
+                        <option value="openai" ${p.model_format === 'openai' || !p.model_format ? 'selected' : ''}>OpenAI 兼容</option>
+                        <option value="anthropic" ${p.model_format === 'anthropic' ? 'selected' : ''}>Anthropic</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row g-2 mb-2">
+                <div class="col-md-6">
+                    <label class="form-label">API Key（可留空，仅做占位）</label>
+                    <input type="password" class="form-control form-control-sm js-provider-api-key" value="${p.api_key || ''}" placeholder="用于该供应商的默认 Key">
+                </div>
+                <div class="col-md-3 form-check form-switch d-flex align-items-end">
+                    <input class="form-check-input js-provider-proxy" type="checkbox" ${p.proxy_open ? 'checked' : ''}>
+                    <label class="form-check-label ms-2">启用代理</label>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <small class="text-muted">供应商级别设置为统一模型提供默认参数。</small>
+                </div>
+            </div>
+            <div class="mt-1 text-muted">
+                模型数量：${Object.keys(p.models || {}).length}（当前仅展示数量，后续版本将支持在此管理模型能力标签）
+            </div>
+        `;
+        card.appendChild(body);
 
-       providersContainer.appendChild(card);
-   });
+        const baseUrlInput = body.querySelector('.js-provider-base-url');
+        const apiPathInput = body.querySelector('.js-provider-api-path');
+        const fmtSelect = body.querySelector('.js-provider-format');
+        const apiKeyInput = body.querySelector('.js-provider-api-key');
+        const proxySwitch = body.querySelector('.js-provider-proxy');
+
+        const ensureProvider = () => {
+            if (!configData.providers) configData.providers = {};
+            if (!configData.providers[name]) configData.providers[name] = { models: {} };
+            return configData.providers[name];
+        };
+
+        baseUrlInput.addEventListener('input', () => {
+            const ref = ensureProvider();
+            ref.base_url = baseUrlInput.value.trim();
+            setDirty(true);
+        });
+        apiPathInput.addEventListener('input', () => {
+            const ref = ensureProvider();
+            ref.api_request_address = apiPathInput.value.trim();
+            setDirty(true);
+        });
+        fmtSelect.addEventListener('change', () => {
+            const ref = ensureProvider();
+            ref.model_format = fmtSelect.value;
+            setDirty(true);
+        });
+        apiKeyInput.addEventListener('input', () => {
+            const ref = ensureProvider();
+            ref.api_key = apiKeyInput.value.trim();
+            setDirty(true);
+        });
+        proxySwitch.addEventListener('change', () => {
+            const ref = ensureProvider();
+            ref.proxy_open = proxySwitch.checked;
+            setDirty(true);
+        });
+
+        header.querySelector('.js-delete-provider').addEventListener('click', () => {
+            if (!confirm(`确定删除供应商 ${name} 及其下所有模型配置吗？`)) return;
+            if (configData.providers && configData.providers[name]) {
+                delete configData.providers[name];
+                renderProviders();
+                setDirty(true);
+                showToast(`已删除供应商 ${name}`, 'success');
+            }
+        });
+
+        providersContainer.appendChild(card);
+    });
 }
 
 /**
