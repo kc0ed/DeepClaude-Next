@@ -46,21 +46,31 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <button class="nav-link active" data-bs-target="#composite-models" data-bs-toggle="tab" type="button"><i class="bi bi-diagram-3 me-1"></i> 组合模型</button>
+                    <ul class="navbar-nav me-auto" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="composite-tab" data-bs-toggle="tab" data-bs-target="#composite-models" type="button" role="tab" aria-controls="composite-models" aria-selected="true">
+                                <i class="bi bi-diagram-3 me-1"></i> 组合模型
+                            </button>
                         </li>
-                        <li class="nav-item">
-                            <button class="nav-link" data-bs-target="#reasoner-models" data-bs-toggle="tab" type="button"><i class="bi bi-braces me-1"></i> 推理模型</button>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="reasoner-tab" data-bs-toggle="tab" data-bs-target="#reasoner-models" type="button" role="tab" aria-controls="reasoner-models" aria-selected="false">
+                                <i class="bi bi-braces me-1"></i> 推理模型
+                            </button>
                         </li>
-                        <li class="nav-item">
-                            <button class="nav-link" data-bs-target="#target-models" data-bs-toggle="tab" type="button"><i class="bi bi-bullseye me-1"></i> 目标模型</button>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="target-tab" data-bs-toggle="tab" data-bs-target="#target-models" type="button" role="tab" aria-controls="target-models" aria-selected="false">
+                                <i class="bi bi-bullseye me-1"></i> 目标模型
+                            </button>
                         </li>
-                        <li class="nav-item">
-                            <button class="nav-link" data-bs-target="#proxy-settings" data-bs-toggle="tab" type="button"><i class="bi bi-globe me-1"></i> 代理设置</button>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="proxy-tab" data-bs-toggle="tab" data-bs-target="#proxy-settings" type="button" role="tab" aria-controls="proxy-settings" aria-selected="false">
+                                <i class="bi bi-globe me-1"></i> 代理设置
+                            </button>
                         </li>
-                        <li class="nav-item">
-                            <button class="nav-link" data-bs-target="#system-settings" data-bs-toggle="tab" type="button"><i class="bi bi-gear me-1"></i> 系统设置</button>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system-settings" type="button" role="tab" aria-controls="system-settings" aria-selected="false">
+                                <i class="bi bi-gear me-1"></i> 系统设置
+                            </button>
                         </li>
                     </ul>
                     <div class="d-flex">
