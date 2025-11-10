@@ -1,72 +1,34 @@
 <div>
-<h1>DeepClaude 🐬🧠 - OpenAI Compatible（deepclaude & deepgemini）</h1>
+<h1>DeepClaude-Next 🐬🧠 - An Enhanced OpenAI Compatible Gateway</h1>
 
-<a href="https://github.com/getasterisk/deepclaude"> Inspiration from getasterisk/deepclaude</a>
+> 本项目基于 <a href="https://github.com/ErlichLiu/DeepClaude">ErlichLiu/DeepClaude</a> 的源代码进行二次开发和维护，旨在提供更纯粹、更强大的社区驱动版本。
 
-[![GitHub license](https://img.erlich.fun/personal-blog/uPic/deepclaude.svg)](#)
-[![Compatible with](https://img.erlich.fun/personal-blog/uPic/-ChatGPT-412991.jpg)](https://openai.com)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](#)
+[![Compatible with](https://img.shields.io/badge/Compatible%20with-OpenAI-brightgreen.svg)](https://openai.com)
 
 </div>
-
 
 <details>
-<summary><strong>更新日志：</strong></summary> 
-2025-05-29.2：更新 Docker Image 运行平台支持，可以通过 `docker pull erlichliu/deepclaude ` 拉取到本地运行，自动选择合适的平台版本。
-
-2025-05-29.1：feat: 系统配置添加 deepseek r1 的 max_tokens 设置，降低成本。
-
-
-2025-05-27.2: 支持配置文件的导入导出模式，方便升级或部署后反复进行配置。
-
-2025-05-27.1: 适配 Gemini API 流式响应上的结束标记处理顺序问题。
-
-2025-05-22.3: 优化 openai 兼容格式返回结束标志，改善近期 deepgeminipro 中断回复的问题。
-
-2025-05-22.2: 优化组合模型之间的衔接 Prompt，提高不同模型本身的能力表达。
-
-2025-05-22.1: 支持可关闭 gemini 2.5 flash 的思考，节省 tokens 消耗，针对 gemini 2.5 pro 采用提示词优化的方式也可以平均每次降低 30% 的成本消耗。
-
-2025-05-16.1: 支持更友好的多段落报错返回，尤其是针对超过上下文长度的报错返回，可以更好的适配前端界面的报错。
-
-2025-03-22.1: 支持根据不同模型设置是否开启代理，提高运行效率。
-
-2025-03-10.1: deepseek r1 推理部分 max_token 改为 5，节省输出 Tokens 消耗；非流式输出部分增加 reasoning_content 数据字段的返回；将非流式输出设置为缺省值，方便 dify 等工具使用。
-
-2025-03-05.1: 更改docker compose配置, 使用volume将容器配置文件绑定至本地, 避免重启容器时丢失配置. 同时设置失败自动重启.
-
-2025-03-02.1: 更新 1.0 版本，支持图形化配置界面，取消 .env 配置，预配置模板，配置更方便
-
-2025-02-25.1: 添加 system message 对于 Claude 3.5 Sonnet 的支持
-
-2025-02-23.1: 重构代码，支持 OpenAI 兼容模型，deepgeminiflash 和 deepgeminipro 配置更方便（请详细查看 READEME 和 .env.example 内的说明）。
-
-2025-02-21.1: 添加 Claude 这段的详细数据结构安全检查。
-
-2025-02-16.1: 支持 claude 侧采用请求体中的自定义模型名称。（如果你采用 oneapi 等中转方，那么现在可以通过配置环境变量或在 API 请求中采用任何 Gemini 等模型完成后半部分。接下来将重构代码，更清晰地支持不同的思考模型组合。）
-
-2025-02-08.2: 支持非流式请求，支持 OpenAI 兼容的 models 接口返回。（⚠️ 当前暂未实现正确的 tokens 消耗统计，稍后更新）
-
-2025-02-08.1: 添加 Github Actions，支持 fork 自动同步、支持自动构建 Docker 最新镜像、支持 docker-compose 部署
-
-2025-02-07.2: 修复 Claude temperature 参数可能会超过范围导致的请求失败的 bug
-
-2025-02-07.1: 支持 Claude temputerature 等参数；添加更详细的 .env.example 说明
-
-2025-02-06.1：修复非原生推理模型无法获得到推理内容的 bug
-
-2025-02-05.1: 支持通过环境变量配置是否是原生支持推理字段的模型，满血版本通常支持
-
-2025-02-04.2: 支持跨域配置，可在 .env 中配置
-
-2025-02-04.1: 支持 Openrouter 以及 OneAPI 等中转服务商作为 Claude 部分的供应商
-
-2025-02-03.3: 支持 OpenRouter 作为 Claude 的供应商，详见 .env.example 说明
-
-2025-02-03.2: 由于 deepseek r1 在某种程度上已经开启了一个规范，所以我们也遵循推理标注的这种规范，更好适配支持的更好的 Cherry Studio 等软件。
-
-2025-02-03.1: Siliconflow 的 DeepSeek R1 返回结构变更，支持新的返回结构
-
-</div>
+<summary><strong>更新日志 (DeepClaude-Next)</strong></summary>
+<ul>
+    <li><strong>2025-11-10:</strong>
+        <ul>
+            <li>feat: 添加 Windows 快速启动脚本 (<code>start_windows.bat</code>)。</li>
+            <li>docs: 修正克隆地址和 Docker 部署说明，使其与本仓库保持一致。</li>
+            <li>refactor: 移除所有原始项目中的推广、赞助和个人信息内容。</li>
+            <li>feat(docs): 添加详细的项目架构指南 (<code>整体架构.md</code>)。</li>
+            <li>refactor(frontend): 对配置页面进行全面的用户体验优化，包括：
+                <ul>
+                    <li>统一并简化保存逻辑。</li>
+                    <li>引入“自动保存”与未保存状态提示。</li>
+                    <li>增加全局加载状态，防止异步操作时的用户误触。</li>
+                    <li>优化模型的增删改渲染，提升流畅度。</li>
+                    <li>增强导入预览功能，提供清晰的差异比对视图。</li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+</ul>
 </details>
 
 # 简介
