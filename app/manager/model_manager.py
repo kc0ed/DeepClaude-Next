@@ -38,8 +38,63 @@ class ModelManager:
             return config
         except Exception as e:
             logger.error(f"加载模型配置失败: {e}")
-            # 返回空配置
-            return {"reasoner_models": {}, "target_models": {}, "composite_models": {}, "proxy": {"proxy_open": False}}
+            # 返回空配置（向后兼容：预留 providers 字段）
+            return {
+                "providers": {},
+                "reasoner_models": {},
+                "target_models": {},
+                "composite_models": {},
+                "proxy": {"proxy_open": False},
+                "system": {}
+            }
+
+    # ===== Provider / 统一模型池：初始结构组装（仅读取，不破坏现有逻辑） =====
+
+    def get_providers(self) -> Dict[str, Any]:
+        """获取 providers 配置，若不存在则返回空字典（兼容旧配置）"""
+        return self.config.get("providers", {}) or {}
+
+    def build_unified_models(self) -> Dict[str, Dict[str, Any]]:
+        """基于 providers 构建统一模型池视图
+
+        仅从 self.config['providers'] 读取信息，不修改原配置，
+        未引入 providers 时返回空字典，保持完全兼容。
+        """
+        providers = self.get_providers()
+        unified: Dict[str, Dict[str, Any]] = {}
+
+        for provider_key, provider_cfg in providers.items():
+            try:
+                base_url = provider_cfg.get("base_url")
+                api_key = provider_cfg.get("api_key")
+                api_request_address = provider_cfg.get("api_request_address")
+                model_format = provider_cfg.get("model_format", "openai")
+                proxy_open = provider_cfg.get("proxy_open", False)
+                extra_headers = provider_cfg.get("extra_headers", {})
+                models_cfg = provider_cfg.get("models", {}) or {}
+
+                for model_name, m in models_cfg.items():
+                    # 逻辑 key：provider/model_name
+                    unified_key = f"{provider_key}/{model_name}"
+                    unified[unified_key] = {
+                        "provider": provider_key,
+                        "display_name": model_name,
+                        "upstream_id": m.get("upstream_id", model_name),
+                        "is_reasoner_capable": bool(m.get("is_reasoner_capable", False)),
+                        "is_target_capable": bool(m.get("is_target_capable", True)),
+                        "enabled": bool(m.get("enabled", True)),
+                        "base_url": base_url,
+                        "api_key": api_key,
+                        "api_request_address": api_request_address,
+                        "model_format": model_format,
+                        "proxy_open": proxy_open,
+                        "extra_headers": extra_headers,
+                    }
+            except Exception as e:
+                logger.error(f"构建 provider '{provider_key}' 模型池失败: {e}")
+                continue
+
+        return unified
 
     def get_composite_model_config(self, model_name: str) -> Dict[str, Any]:
         """获取组合模型配置
@@ -202,36 +257,74 @@ class ModelManager:
         return messages, model, (temperature, top_p, presence_penalty, frequency_penalty, stream)
 
     def get_model_list(self) -> List[Dict[str, Any]]:
-        """获取可用模型列表
+        """获取可用模型列表（兼容 OpenAI /v1/models）
 
-        Returns:
-            List[Dict[str, Any]]: 模型列表
+        - 继续以 composite_models 作为主要对外模型入口，保持向后兼容。
+        - 如存在 providers 定义，则在列表中附加一个虚拟模型，暴露统一模型池信息，
+          供新前端或高级客户端读取，不影响现有调用方。
         """
-        models = []
-        for model_id, config in self.config.get("composite_models", {}).items():
-            if config.get("is_valid", False):
+        models: List[Dict[str, Any]] = []
+
+        # 1) 组合模型列表（原有逻辑）
+        composite_models = self.config.get("composite_models", {}) or {}
+        for model_id, config in composite_models.items():
+            if not config.get("is_valid", False):
+                continue
+
+            models.append({
+                "id": model_id,
+                "object": "model",
+                "created": 1740268800,
+                "owned_by": "deepclaude",
+                "permission": {
+                    "id": f"modelperm-{model_id}",
+                    "object": "model_permission",
+                    "created": 1740268800,
+                    "allow_create_engine": False,
+                    "allow_sampling": True,
+                    "allow_logprobs": True,
+                    "allow_search_indices": False,
+                    "allow_view": True,
+                    "allow_fine_tuning": False,
+                    "organization": "*",
+                    "group": None,
+                    "is_blocking": False,
+                },
+                "root": "deepclaude",
+                "parent": None,
+            })
+
+        # 2) Provider 统一模型池（可选扩展，不破坏兼容性）
+        try:
+            unified = self.build_unified_models()
+            if unified:
                 models.append({
-                    "id": model_id,
+                    "id": "_deepclaude_provider_models",
                     "object": "model",
                     "created": 1740268800,
                     "owned_by": "deepclaude",
-                    "permission": {
-                        "id": "modelperm-{}".format(model_id),
-                        "object": "model_permission",
-                        "created": 1740268800,
-                        "allow_create_engine": False,
-                        "allow_sampling": True,
-                        "allow_logprobs": True,
-                        "allow_search_indices": False,
-                        "allow_view": True,
-                        "allow_fine_tuning": False,
-                        "organization": "*",
-                        "group": None,
-                        "is_blocking": False
+                    "metadata": {
+                        "type": "provider_models",
+                        "models": [
+                            {
+                                "id": key,
+                                "provider": m["provider"],
+                                "display_name": m["display_name"],
+                                "upstream_id": m["upstream_id"],
+                                "can_reason": m["is_reasoner_capable"],
+                                "can_generate": m["is_target_capable"],
+                                "enabled": m["enabled"],
+                                "model_format": m["model_format"],
+                            }
+                            for key, m in unified.items()
+                        ],
                     },
                     "root": "deepclaude",
-                    "parent": None
+                    "parent": None,
                 })
+        except Exception as e:
+            logger.error(f"构建 provider 模型池信息失败: {e}")
+
         return models
 
     async def process_request(self, body: Dict[str, Any]) -> Any:
@@ -343,12 +436,24 @@ class ModelManager:
             Tuple[bool, str]: (是否有效, 错误信息)
         """
         try:
-            # 检查必要的顶级字段
+            # 检查必要的顶级字段（保持对旧结构的硬约束，保证兼容性）
             required_fields = ["reasoner_models", "target_models", "composite_models", "proxy", "system"]
             for field in required_fields:
                 if field not in config:
                     return False, f"缺少必要字段: {field}"
-            
+
+            # providers 字段：可选，做宽松校验（不阻塞旧配置）
+            providers = config.get("providers", None)
+            if providers is not None:
+                if not isinstance(providers, dict):
+                    return False, "providers 必须是字典类型"
+                for provider_name, provider_cfg in providers.items():
+                    if not isinstance(provider_cfg, dict):
+                        return False, f"provider '{provider_name}' 配置必须是字典类型"
+                    models_cfg = provider_cfg.get("models", None)
+                    if models_cfg is not None and not isinstance(models_cfg, dict):
+                        return False, f"provider '{provider_name}' 的 models 字段必须是字典类型"
+
             # 验证推理模型配置
             reasoner_models = config.get("reasoner_models", {})
             if not isinstance(reasoner_models, dict):
