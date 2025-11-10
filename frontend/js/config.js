@@ -97,20 +97,7 @@ function initConfig() {
         }
     });
 
-    // 初始化 Bootstrap 标签页
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', function(event) {
-            event.preventDefault();
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            this.classList.add('active');
-            
-            const targetId = this.getAttribute('href').substring(1);
-            document.querySelectorAll('.tab-pane').forEach(pane => {
-                pane.classList.remove('show', 'active');
-            });
-            document.getElementById(targetId).classList.add('show', 'active');
-        });
-    });
+    // Bootstrap 的 JS 会自动处理标签页切换，无需手动编写
 }
 
 /**
