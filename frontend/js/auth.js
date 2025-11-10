@@ -2,11 +2,18 @@
  * 身份验证相关功能
  */
 
-// API 基础 URL
+ // API 基础 URL
 const API_BASE_URL = window.location.origin;
 
 // 本地存储键名
 const API_KEY_STORAGE_KEY = 'deepclaude_api_key';
+
+// 供 Config 侧共享的验证缓存，避免重复请求和日志噪音
+let cachedConfigResponse = null;
+
+// 供 Config 侧共享的验证缓存，避免重复请求和日志噪音
+// 注意：仅在 verifyApiKey 成功时写入，由 Config.load 一次性消费
+window.__DEEPCLAUDE_CACHED_CONFIG__ = window.__DEEPCLAUDE_CACHED_CONFIG__ || null;
 
 // 页面元素
 const authPage = document.getElementById('auth-page');
@@ -106,7 +113,18 @@ async function verifyApiKey(apiKey) {
             }
         });
         
-        return response.ok;
+        if (!response.ok) {
+            return false;
+        }
+
+        // 尝试缓存一次配置结果，供后续 Config.load 复用，避免重复拉取和日志噪音
+        try {
+            window.__DEEPCLAUDE_CACHED_CONFIG__ = await response.json();
+        } catch (e) {
+            window.__DEEPCLAUDE_CACHED_CONFIG__ = null;
+        }
+
+        return true;
     } catch (error) {
         console.error('验证 API Key 时发生错误:', error);
         return false;
@@ -156,5 +174,8 @@ function getCurrentApiKey() {
 window.Auth = {
     init: initAuth,
     getCurrentApiKey,
-    API_BASE_URL
+    API_BASE_URL,
+    // 提供只读访问与清理方法给 Config 使用
+    getCachedConfig: () => window.__DEEPCLAUDE_CACHED_CONFIG__,
+    clearCachedConfig: () => { window.__DEEPCLAUDE_CACHED_CONFIG__ = null; }
 };

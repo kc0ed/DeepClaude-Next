@@ -105,20 +105,27 @@ function initConfig() {
 async function loadConfigData() {
     showLoader(true);
     try {
-        showToast('正在加载配置数据...', 'info');
+        // 优先使用 Auth.verify 缓存的配置，避免重复请求和视觉抖动
+        const cached = Auth.getCachedConfig && Auth.getCachedConfig();
         
-        const apiKey = Auth.getCurrentApiKey();
-        const response = await fetch(`${Auth.API_BASE_URL}/v1/config`, {
-            headers: {
-                'Authorization': `Bearer ${apiKey}`
+        if (cached) {
+            configData = cached;
+            // 一次性用完即清空，后续手动刷新仍然会走正常请求
+            Auth.clearCachedConfig && Auth.clearCachedConfig();
+        } else {
+            const apiKey = Auth.getCurrentApiKey();
+            const response = await fetch(`${Auth.API_BASE_URL}/v1/config`, {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('加载配置数据失败');
             }
-        });
-        
-        if (!response.ok) {
-            throw new Error('加载配置数据失败');
+            
+            configData = await response.json();
         }
-        
-        configData = await response.json();
         
         // 确保系统设置存在
         if (!configData.system) {
