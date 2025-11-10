@@ -133,7 +133,51 @@
 
 
 
-## 2. 开始运行（使用 Docker）
+## 2. 本地开发 (不使用 Docker)
+
+如果您希望在本地直接运行项目以进行开发和调试，请遵循以下步骤。
+
+**环境准备**:
+
+1.  **Python**: 确保您已安装 Python 3.11 或更高版本。
+2.  **uv**: 项目使用 `uv` 作为包管理器。如果尚未安装，请先运行 `pip install uv`。
+
+**启动步骤**:
+
+1.  **克隆项目** (如果您尚未操作):
+    ```bash
+    git clone https://github.com/ErlichLiu/DeepClaude.git
+    cd DeepClaude
+    ```
+
+2.  **创建并激活虚拟环境**:
+    使用 `uv` 创建一个独立的虚拟环境。
+    ```bash
+    uv venv
+    ```
+    然后激活它：
+    *   Windows (CMD): `.venv\Scripts\activate`
+    *   Windows (PowerShell): `.venv\Scripts\Activate.ps1`
+    *   macOS/Linux: `source .venv/bin/activate`
+
+3.  **安装依赖**:
+    在激活的虚拟环境中，使用 `uv` 安装所有项目依赖。
+    ```bash
+    uv pip install .
+    ```
+
+4.  **启动应用**:
+    使用 `uvicorn` 启动 FastAPI 服务，并开启热重载。
+    ```bash
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ```
+
+5.  **访问配置页面**:
+    启动成功后，在浏览器中打开 `http://localhost:8000/config` 即可开始配置。
+
+---
+
+## 3. 部署运行 (使用 Docker)
 
 ** 极其推荐 Zeabur，然后通过 Zeabur 来购买新加坡或日本的服务器是最划算的，只要 2 美金就足够，如果你是新用户，可以点击：https://zeabur.com/referral?referralCode=ErlichLiu 我们一起获得奖励额度 **
 
