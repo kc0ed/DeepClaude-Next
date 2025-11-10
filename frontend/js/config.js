@@ -739,11 +739,11 @@ function renderProviders() {
             <div class="row g-2 mb-2">
                 <div class="col-md-4">
                     <label class="form-label">Base URL</label>
-                    <input type="text" class="form-control form-control-sm js-provider-base-url" value="${p.base_url || ''}" placeholder="https://api.example.com">
+                    <input type="text" class="form-control form-control-sm js-provider-base-url" value="${p.base_url || ''}" placeholder="例如: https://xiaor.xx.kg/v1 或 https://api.example.com">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">API 请求地址</label>
-                    <input type="text" class="form-control form-control-sm js-provider-api-path" value="${p.api_request_address || ''}" placeholder="v1/chat/completions">
+                    <input type="text" class="form-control form-control-sm js-provider-api-path" value="${p.api_request_address || ''}" placeholder="留空默认 /chat/completions">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">模型格式</label>
@@ -751,6 +751,14 @@ function renderProviders() {
                         <option value="openai" ${p.model_format === 'openai' || !p.model_format ? 'selected' : ''}>OpenAI 兼容</option>
                         <option value="anthropic" ${p.model_format === 'anthropic' ? 'selected' : ''}>Anthropic</option>
                     </select>
+                </div>
+            </div>
+            <div class="row g-2 mb-1">
+                <div class="col-12">
+                    <small class="text-muted">
+                        预览请求地址：
+                        <code class="js-provider-url-preview"></code>
+                    </small>
                 </div>
             </div>
             <div class="row g-2 mb-2">
@@ -775,6 +783,7 @@ function renderProviders() {
         const baseUrlInput = body.querySelector('.js-provider-base-url');
         const apiPathInput = body.querySelector('.js-provider-api-path');
         const fmtSelect = body.querySelector('.js-provider-format');
+        const urlPreview = body.querySelector('.js-provider-url-preview');
         const apiKeyInput = body.querySelector('.js-provider-api-key');
         const proxySwitch = body.querySelector('.js-provider-proxy');
 
@@ -783,6 +792,36 @@ function renderProviders() {
             if (!configData.providers[name]) configData.providers[name] = { models: {} };
             return configData.providers[name];
         };
+
+        const updatePreview = () => {
+            if (!urlPreview) return;
+            const ref = ensureProvider();
+            const rawBase = (ref.base_url || '').trim();
+            const rawPath = (ref.api_request_address || '').trim();
+
+            if (!rawBase) {
+                urlPreview.textContent = '请填写 Base URL';
+                return;
+            }
+
+            // 规范化 base_url：去掉末尾斜杠
+            let base = rawBase.replace(/\/+$/, '');
+
+            // 规范化 path：
+            let path = rawPath;
+            if (!path) {
+                path = '/chat/completions';
+            }
+            // 若不以 / 开头，补上 /
+            if (!path.startsWith('/')) {
+                path = '/' + path;
+            }
+
+            urlPreview.textContent = base + path;
+        };
+
+        // 初始化预览
+        updatePreview();
 
         baseUrlInput.addEventListener('input', () => {
             const ref = ensureProvider();
@@ -1080,7 +1119,8 @@ function collectConfigFromUI() {
         target_models: {},
         composite_models: {},
         proxy: {},
-        system: {}
+        system: {},
+        providers: {}
     };
 
     // 收集推理模型
@@ -1136,6 +1176,22 @@ function collectConfigFromUI() {
     data.system.api_key = document.getElementById('system-api-key').value.trim() || '123456';
     data.system.save_deepseek_tokens = document.getElementById('save-deepseek-tokens').checked;
     data.system.save_deepseek_tokens_max_tokens = parseInt(document.getElementById('deepseek-tokens-max').value) || 5;
+
+    // 收集供应商设置（直接从当前 configData.providers 拷贝，确保前端改动会写回后端）
+    if (configData.providers && typeof configData.providers === 'object') {
+        Object.keys(configData.providers).forEach((name) => {
+            const p = configData.providers[name] || {};
+            data.providers[name] = {
+                display_name: p.display_name || name,
+                base_url: p.base_url || '',
+                api_request_address: p.api_request_address || '',
+                model_format: p.model_format || 'openai',
+                proxy_open: !!p.proxy_open,
+                api_key: p.api_key || '',
+                models: p.models || {}
+            };
+        });
+    }
 
     return data;
 }
