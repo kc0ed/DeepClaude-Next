@@ -97,7 +97,14 @@ function initConfig() {
         }
     });
 
-    // Bootstrap 的 JS 会自动处理标签页切换，无需手动编写
+    // 使用 Bootstrap 官方 API 来处理标签页切换，避免默认的 a 标签跳转行为
+    document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(triggerEl => {
+        triggerEl.addEventListener('click', event => {
+            event.preventDefault();
+            const tab = new bootstrap.Tab(triggerEl);
+            tab.show();
+        });
+    });
 }
 
 /**
