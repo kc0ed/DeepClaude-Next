@@ -32,6 +32,9 @@ const reasonerModelsContainer = document.getElementById('reasoner-models-contain
 const targetModelsContainer = document.getElementById('target-models-container');
 const compositeModelsContainer = document.getElementById('composite-models-container');
 
+// 供应商相关容器
+const providersContainer = document.getElementById('providers-container');
+
 // 添加模型按钮
 const addReasonerModelBtn = document.getElementById('add-reasoner-model-btn');
 const addTargetModelBtn = document.getElementById('add-target-model-btn');
@@ -154,6 +157,9 @@ async function loadConfigData() {
         
         // 渲染系统设置
         renderSystemSettings();
+
+        // 渲染供应商（如存在）
+        renderProviders();
 
         // 重置脏状态
         setDirty(false);
@@ -607,6 +613,73 @@ function addAllowOriginInput(value = '') {
     inputGroup.appendChild(button);
     
     allowOriginsContainer.appendChild(inputGroup);
+}
+
+/**
+* 渲染供应商配置（只做基础展示与占位，保持向后兼容）
+* 使用 /v1/config 返回中的 config.providers 数据：
+* {
+*   "providers": {
+*     "dmxapi": {
+*       "display_name": "...",
+*       "base_url": "...",
+*       "api_request_address": "...",
+*       "model_format": "openai",
+*       "models": {
+*         "Claude-3-7-Sonnet": {
+*           "upstream_id": "...",
+*           "is_reasoner_capable": false,
+*           "is_target_capable": true,
+*           "enabled": true
+*         }
+*       }
+*     }
+*   }
+* }
+*/
+function renderProviders() {
+   if (!providersContainer) return;
+
+   const providers = (configData.providers) || {};
+   providersContainer.innerHTML = '';
+
+   const keys = Object.keys(providers);
+   if (keys.length === 0) {
+       const empty = document.createElement('div');
+       empty.className = 'alert alert-secondary';
+       empty.textContent = '当前还没有配置任何供应商。你可以继续使用下方旧版推理/目标模型配置，或后续通过更新版本使用统一供应商配置。';
+       providersContainer.appendChild(empty);
+       return;
+   }
+
+   keys.forEach((name) => {
+       const p = providers[name] || {};
+       const card = document.createElement('div');
+       card.className = 'card mb-3';
+
+       const header = document.createElement('div');
+       header.className = 'card-header d-flex justify-content-between align-items-center';
+       header.innerHTML = `
+           <div>
+               <strong>${p.display_name || name}</strong>
+               <span class="badge bg-light text-dark ms-2">${name}</span>
+           </div>
+       `;
+       card.appendChild(header);
+
+       const body = document.createElement('div');
+       body.className = 'card-body small text-muted';
+       body.innerHTML = `
+           <div class="mb-1"><strong>Base URL:</strong> ${p.base_url || '-'}</div>
+           <div class="mb-1"><strong>API 地址:</strong> ${p.api_request_address || '-'}</div>
+           <div class="mb-1"><strong>模型格式:</strong> ${p.model_format || 'openai'}</div>
+           <div class="mb-1"><strong>模型数量:</strong> ${Object.keys(p.models || {}).length}</div>
+           <div class="text-muted">（当前版本仅展示 providers 配置，保持与旧版配置完全兼容。后续版本将在此处提供完整编辑能力。）</div>
+       `;
+       card.appendChild(body);
+
+       providersContainer.appendChild(card);
+   });
 }
 
 /**
