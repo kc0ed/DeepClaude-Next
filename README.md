@@ -112,8 +112,8 @@
 
 1.  **克隆项目** (如果您尚未操作):
     ```bash
-    git clone https://github.com/ErlichLiu/DeepClaude.git
-    cd DeepClaude
+    git clone https://github.com/kc0ed/DeepClaude-Next.git
+    cd DeepClaude-Next
     ```
 
 2.  **创建并激活虚拟环境**:
@@ -156,36 +156,29 @@ macOS 下载安装地址：https://docs.docker.com/desktop/setup/install/mac-ins
 
 `docker --version`
 
+🚀 Step 2. 构建并运行项目
 
+```bash
+# 1. 克隆您的项目仓库
+git clone https://github.com/kc0ed/DeepClaude-Next.git
 
-🚀 Step 2. 拉取镜像并运行项目
+# 2. 进入项目目录
+cd DeepClaude-Next
 
-打开终端或命令行，输入以下命令：
+# 3. 使用项目中的 Dockerfile 构建本地镜像
+# 您可以将 deepclaude-next:latest 替换为您喜欢的任何名称和标签
+docker build -t deepclaude-next:latest .
 
-`docker run -p 8000:8000 erlichliu/deepclaude:latest`
-
-运行后你可以访问：
-
-`http://localhost:8000/config`
-
-即可使用该服务。
+# 4. 运行您刚刚构建的镜像
+docker run -p 8000:8000 deepclaude-next:latest
+```
 
 ⸻
 
 📦 可选：后台运行 + 自动重启（建议部署时使用）
 
-`docker run -d --restart unless-stopped -p 8000:8000 erlichliu/deepclaude:latest`
-
-
-⸻
-
-🧪 开发者：如果你想构建自己的镜像（而不是用已有镜像）
-
 ```bash
-git clone https://github.com/ErlichLiu/DeepClaude.git
-cd DeepClaude
-docker build -t deepclaude:dev .
-docker run -p 8000:8000 deepclaude:dev
+docker run -d --restart unless-stopped -p 8000:8000 deepclaude-next:latest
 ```
 
 ⸻
