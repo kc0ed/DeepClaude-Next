@@ -156,7 +156,8 @@ body {
 }
 
 .navbar-nav .nav-link.active {
-    color: #111827; /* 深色文字，确保白底高对比可读 */
+    /* 强制覆盖 Bootstrap navbar-active 默认颜色，避免白底白字 */
+    color: #111827 !important; /* 深色文字，白底高对比 */
     background-color: #ffffff !important;
     font-weight: 600;
     box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
