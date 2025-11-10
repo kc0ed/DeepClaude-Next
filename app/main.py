@@ -14,7 +14,7 @@ from app.utils.logger import logger
 from app.manager import model_manager
 
 # 版本信息
-VERSION = "v1.0.1"
+VERSION = "v1.1.0"
 
 # 显示当前的版本
 logger.info(f"当前版本: {VERSION}")
