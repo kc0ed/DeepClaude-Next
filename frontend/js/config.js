@@ -3,22 +3,9 @@
  */
 
 // 全局配置数据
-let configData = {
-    reasoner_models: {},
-    target_models: {},
-    composite_models: {},
-    proxy: {
-        proxy_open: false,
-        proxy_address: ""
-    },
-    system: {
-        allow_origins: ["*"],
-        log_level: "INFO",
-        api_key: "123456",
-        save_deepseek_tokens: false,
-        save_deepseek_tokens_max_tokens: 5
-    }
-};
+let configData = {};
+let isDirty = false; // 标记是否有未保存的更改
+const originalPageTitle = document.title;
 
 // 模态框和选项元素
 const addModelModal = new bootstrap.Modal(document.getElementById('add-model-modal'));
@@ -38,6 +25,7 @@ const configFileInput = document.getElementById('config-file-input');
 const configPreview = document.getElementById('config-preview');
 const configPreviewContent = document.getElementById('config-preview-content');
 const confirmImportBtn = document.getElementById('confirm-import-btn');
+const loaderOverlay = document.getElementById('loader-overlay');
 
 // 模型容器
 const reasonerModelsContainer = document.getElementById('reasoner-models-container');
@@ -78,9 +66,7 @@ function initConfig() {
     
     // 绑定保存按钮事件
     saveAllBtn.addEventListener('click', saveAllConfigurations);
-    saveProxyBtn.addEventListener('click', saveProxySettings);
-    saveSystemBtn.addEventListener('click', saveSystemSettings);
-    
+
     // 绑定导入导出按钮事件
     exportConfigBtn.addEventListener('click', exportConfiguration);
     importConfigBtn.addEventListener('click', () => importConfigModal.show());
@@ -94,10 +80,23 @@ function initConfig() {
     
     // 绑定确认添加模型按钮事件
     confirmAddModelBtn.addEventListener('click', handleAddModel);
-    
+
     // 绑定确认删除按钮事件
     confirmDeleteBtn.addEventListener('click', handleDeleteModel);
-    
+
+    // 监听所有表单输入变化
+    document.getElementById('config-page').addEventListener('input', () => {
+        setDirty(true);
+    });
+
+    // 监听离开页面事件
+    window.addEventListener('beforeunload', (event) => {
+        if (isDirty) {
+            event.preventDefault();
+            event.returnValue = '';
+        }
+    });
+
     // 初始化 Bootstrap 标签页
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', function(event) {
@@ -118,6 +117,7 @@ function initConfig() {
  * 加载配置数据
  */
 async function loadConfigData() {
+    showLoader(true);
     try {
         showToast('正在加载配置数据...', 'info');
         
@@ -161,11 +161,16 @@ async function loadConfigData() {
         
         // 渲染系统设置
         renderSystemSettings();
+
+        // 重置脏状态
+        setDirty(false);
         
         showToast('配置数据加载成功', 'success');
     } catch (error) {
         console.error('加载配置数据时发生错误:', error);
         showToast('加载配置数据失败: ' + error.message, 'danger');
+    } finally {
+        showLoader(false);
     }
 }
 
@@ -205,6 +210,7 @@ function renderReasonerModel(name, config) {
     
     // 设置模型名称
     clone.querySelector('.model-name').textContent = name;
+    clone.querySelector('.reasoner-model-card').dataset.modelName = name;
     
     // 设置表单值
     const form = clone.querySelector('.model-form');
@@ -216,24 +222,11 @@ function renderReasonerModel(name, config) {
     form.querySelector('.is-valid').checked = config.is_valid || false;
     form.querySelector('.is-proxy-open').checked = config.proxy_open || false;
     
-    // 绑定保存按钮事件
-    form.querySelector('.save-model-btn').addEventListener('click', () => {
-        saveReasonerModel(name, form);
-    });
-    
-    // 绑定编辑按钮事件
-    clone.querySelector('.edit-model-btn').addEventListener('click', () => {
-        toggleFormEditable(form, true);
-    });
-    
     // 绑定删除按钮事件
     clone.querySelector('.delete-model-btn').addEventListener('click', () => {
         showDeleteConfirmation('reasoner', name);
     });
-    
-    // 默认禁用表单编辑
-    toggleFormEditable(form, false);
-    
+
     // 添加到容器
     reasonerModelsContainer.appendChild(clone);
 }
@@ -249,6 +242,7 @@ function renderTargetModel(name, config) {
     
     // 设置模型名称
     clone.querySelector('.model-name').textContent = name;
+    clone.querySelector('.target-model-card').dataset.modelName = name;
     
     // 设置表单值
     const form = clone.querySelector('.model-form');
@@ -260,24 +254,11 @@ function renderTargetModel(name, config) {
     form.querySelector('.is-valid').checked = config.is_valid || false;
     form.querySelector('.is-proxy-open').checked = config.proxy_open || false;
     
-    // 绑定保存按钮事件
-    form.querySelector('.save-model-btn').addEventListener('click', () => {
-        saveTargetModel(name, form);
-    });
-    
-    // 绑定编辑按钮事件
-    clone.querySelector('.edit-model-btn').addEventListener('click', () => {
-        toggleFormEditable(form, true);
-    });
-    
     // 绑定删除按钮事件
     clone.querySelector('.delete-model-btn').addEventListener('click', () => {
         showDeleteConfirmation('target', name);
     });
-    
-    // 默认禁用表单编辑
-    toggleFormEditable(form, false);
-    
+
     // 添加到容器
     targetModelsContainer.appendChild(clone);
 }
@@ -293,6 +274,7 @@ function renderCompositeModel(name, config) {
     
     // 设置模型名称
     clone.querySelector('.model-name').textContent = name;
+    clone.querySelector('.composite-model-card').dataset.modelName = name;
     
     // 设置表单值
     const form = clone.querySelector('.model-form');
@@ -323,24 +305,11 @@ function renderCompositeModel(name, config) {
     reasonerSelect.value = config.reasoner_models || '';
     targetSelect.value = config.target_models || '';
     
-    // 绑定保存按钮事件
-    form.querySelector('.save-model-btn').addEventListener('click', () => {
-        saveCompositeModel(name, form);
-    });
-    
-    // 绑定编辑按钮事件
-    clone.querySelector('.edit-model-btn').addEventListener('click', () => {
-        toggleFormEditable(form, true);
-    });
-    
     // 绑定删除按钮事件
     clone.querySelector('.delete-model-btn').addEventListener('click', () => {
         showDeleteConfirmation('composite', name);
     });
-    
-    // 默认禁用表单编辑
-    toggleFormEditable(form, false);
-    
+
     // 添加到容器
     compositeModelsContainer.appendChild(clone);
 }
@@ -406,194 +375,16 @@ function renderSystemSettings() {
 }
 
 /**
- * 切换表单可编辑状态
- * @param {HTMLFormElement} form - 表单元素
- * @param {boolean} editable - 是否可编辑
- */
-function toggleFormEditable(form, editable) {
-    const inputs = form.querySelectorAll('input, select');
-    inputs.forEach(input => {
-        input.disabled = !editable;
-    });
-    
-    const saveBtn = form.querySelector('.save-model-btn');
-    saveBtn.style.display = editable ? 'block' : 'none';
-}
-
-/**
- * 保存推理模型
- * @param {string} name - 模型名称
- * @param {HTMLFormElement} form - 表单元素
- */
-function saveReasonerModel(name, form) {
-    const modelConfig = {
-        model_id: form.querySelector('.model-id').value,
-        api_key: form.querySelector('.api-key').value,
-        api_base_url: form.querySelector('.api-base-url').value,
-        api_request_address: form.querySelector('.api-request-address').value,
-        is_origin_reasoning: form.querySelector('.is-origin-reasoning').checked,
-        is_valid: form.querySelector('.is-valid').checked,
-        proxy_open: form.querySelector('.is-proxy-open').checked
-    };
-    
-    configData.reasoner_models[name] = modelConfig;
-    
-    toggleFormEditable(form, false);
-    showToast(`推理模型 ${name} 已保存`, 'success');
-}
-
-/**
- * 保存目标模型
- * @param {string} name - 模型名称
- * @param {HTMLFormElement} form - 表单元素
- */
-function saveTargetModel(name, form) {
-    const modelConfig = {
-        model_id: form.querySelector('.model-id').value,
-        api_key: form.querySelector('.api-key').value,
-        api_base_url: form.querySelector('.api-base-url').value,
-        api_request_address: form.querySelector('.api-request-address').value,
-        model_format: form.querySelector('.model-format').value,
-        is_valid: form.querySelector('.is-valid').checked,
-        proxy_open: form.querySelector('.is-proxy-open').checked
-    };
-    
-    configData.target_models[name] = modelConfig;
-    
-    toggleFormEditable(form, false);
-    showToast(`目标模型 ${name} 已保存`, 'success');
-}
-
-/**
- * 保存组合模型
- * @param {string} name - 模型名称
- * @param {HTMLFormElement} form - 表单元素
- */
-function saveCompositeModel(name, form) {
-    const modelConfig = {
-        model_id: form.querySelector('.model-id').value,
-        reasoner_models: form.querySelector('.reasoner-model-select').value,
-        target_models: form.querySelector('.target-model-select').value,
-        is_valid: form.querySelector('.is-valid').checked
-    };
-    
-    configData.composite_models[name] = modelConfig;
-    
-    toggleFormEditable(form, false);
-    showToast(`组合模型 ${name} 已保存`, 'success');
-}
-
-/**
- * 保存代理设置
- */
-function saveProxySettings() {
-    try {
-        configData.proxy.proxy_open = proxyOpenSwitch.checked;
-        configData.proxy.proxy_address = proxyAddressInput.value.trim();
-        
-        saveAllConfigurations();
-    } catch (error) {
-        console.error('保存代理设置时发生错误:', error);
-        showToast('保存代理设置失败: ' + error.message, 'danger');
-    }
-}
-
-/**
- * 保存系统设置
- */
-function saveSystemSettings() {
-    try {
-        // 获取允许的源
-        const originInputs = document.querySelectorAll('.allow-origin');
-        const origins = Array.from(originInputs).map(input => input.value.trim()).filter(value => value);
-        
-        // 获取日志级别
-        const logLevel = logLevelSelect.value;
-        
-        // 获取 API Key
-        const apiKey = systemApiKeyInput.value.trim() || '123456';
-        
-        // 获取 DeepSeek tokens 相关设置
-        const saveDeepseekTokensSwitch = document.getElementById('save-deepseek-tokens');
-        const deepseekTokensMaxInput = document.getElementById('deepseek-tokens-max');
-        
-        // 添加详细的调试信息
-        console.log('调试信息 - DOM 元素状态:', {
-            saveDeepseekTokensSwitch: saveDeepseekTokensSwitch,
-            saveDeepseekTokensSwitchExists: !!saveDeepseekTokensSwitch,
-            saveDeepseekTokensSwitchChecked: saveDeepseekTokensSwitch ? saveDeepseekTokensSwitch.checked : 'element not found',
-            deepseekTokensMaxInput: deepseekTokensMaxInput,
-            deepseekTokensMaxInputExists: !!deepseekTokensMaxInput,
-            deepseekTokensMaxInputValue: deepseekTokensMaxInput ? deepseekTokensMaxInput.value : 'element not found'
-        });
-        
-        const saveDeepseekTokens = saveDeepseekTokensSwitch ? saveDeepseekTokensSwitch.checked : false;
-        const deepseekTokensMax = deepseekTokensMaxInput ? parseInt(deepseekTokensMaxInput.value) || 5 : 5;
-        
-        console.log('保存系统设置 - DeepSeek tokens 设置:', {
-            saveDeepseekTokens,
-            deepseekTokensMax
-        });
-        
-        // 更新配置数据
-        configData.system.allow_origins = origins;
-        configData.system.log_level = logLevel;
-        configData.system.api_key = apiKey;
-        configData.system.save_deepseek_tokens = saveDeepseekTokens;
-        configData.system.save_deepseek_tokens_max_tokens = deepseekTokensMax;
-        
-        console.log('更新后的配置数据 - 系统设置:', configData.system);
-        
-        saveAllConfigurations();
-    } catch (error) {
-        console.error('保存系统设置时发生错误:', error);
-        showToast('保存系统设置失败: ' + error.message, 'danger');
-    }
-}
-
-/**
  * 保存所有配置
  */
 async function saveAllConfigurations() {
+    showLoader(true);
     try {
-        // 在保存之前，先从界面读取最新的设置
-        // 获取代理设置
-        configData.proxy.proxy_open = proxyOpenSwitch.checked;
-        configData.proxy.proxy_address = proxyAddressInput.value.trim();
-        
-        // 获取系统设置
-        const originInputs = document.querySelectorAll('.allow-origin');
-        const origins = Array.from(originInputs).map(input => input.value.trim()).filter(value => value);
-        const logLevel = logLevelSelect.value;
-        const apiKey = systemApiKeyInput.value.trim() || '123456';
-        
-        // 获取 DeepSeek tokens 相关设置
-        const saveDeepseekTokensSwitch = document.getElementById('save-deepseek-tokens');
-        const deepseekTokensMaxInput = document.getElementById('deepseek-tokens-max');
-        
-        console.log('saveAllConfigurations - 调试信息 - DOM 元素状态:', {
-            saveDeepseekTokensSwitch: saveDeepseekTokensSwitch,
-            saveDeepseekTokensSwitchExists: !!saveDeepseekTokensSwitch,
-            saveDeepseekTokensSwitchChecked: saveDeepseekTokensSwitch ? saveDeepseekTokensSwitch.checked : 'element not found',
-            deepseekTokensMaxInput: deepseekTokensMaxInput,
-            deepseekTokensMaxInputExists: !!deepseekTokensMaxInput,
-            deepseekTokensMaxInputValue: deepseekTokensMaxInput ? deepseekTokensMaxInput.value : 'element not found'
-        });
-        
-        const saveDeepseekTokens = saveDeepseekTokensSwitch ? saveDeepseekTokensSwitch.checked : false;
-        const deepseekTokensMax = deepseekTokensMaxInput ? parseInt(deepseekTokensMaxInput.value) || 5 : 5;
-        
-        // 更新系统配置
-        configData.system.allow_origins = origins;
-        configData.system.log_level = logLevel;
-        configData.system.api_key = apiKey;
-        configData.system.save_deepseek_tokens = saveDeepseekTokens;
-        configData.system.save_deepseek_tokens_max_tokens = deepseekTokensMax;
-        
-        console.log('准备保存的完整配置数据:', JSON.stringify(configData, null, 2));
-        
+        // 从界面收集所有数据
+        const newConfigData = collectConfigFromUI();
+
         showToast('正在保存配置...', 'info');
-        
+
         const authApiKey = Auth.getCurrentApiKey();
         const response = await fetch(`${Auth.API_BASE_URL}/v1/config`, {
             method: 'POST',
@@ -601,24 +392,25 @@ async function saveAllConfigurations() {
                 'Authorization': `Bearer ${authApiKey}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(configData)
+            body: JSON.stringify(newConfigData)
         });
-        
-        console.log('保存配置请求响应状态:', response.status);
-        
+
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('保存配置失败，响应内容:', errorText);
-            throw new Error('保存配置失败');
+            throw new Error(`保存配置失败: ${errorText}`);
         }
-        
-        const responseData = await response.json();
-        console.log('保存配置成功，响应数据:', responseData);
+
+        // 更新内存中的配置
+        configData = newConfigData;
         
         showToast('所有配置已保存', 'success');
+        setDirty(false); // 重置脏状态
+
     } catch (error) {
         console.error('保存配置时发生错误:', error);
         showToast('保存配置失败: ' + error.message, 'danger');
+    } finally {
+        showLoader(false);
     }
 }
 
@@ -723,14 +515,25 @@ function handleAddModel() {
     
     // 添加模型
     targetCollection[modelName] = defaultConfig;
-    
-    // 重新渲染模型
-    renderModels();
+
+    // 增量渲染
+    switch (modelType) {
+        case 'reasoner':
+            renderReasonerModel(modelName, defaultConfig);
+            break;
+        case 'target':
+            renderTargetModel(modelName, defaultConfig);
+            break;
+        case 'composite':
+            renderCompositeModel(modelName, defaultConfig);
+            break;
+    }
     
     // 关闭对话框
     addModelModal.hide();
-    
+
     showToast(`模型 ${modelName} 已添加`, 'success');
+    setDirty(true);
 }
 
 /**
@@ -759,26 +562,28 @@ function handleDeleteModel() {
     const modelType = confirmDeleteBtn.dataset.modelType;
     const modelName = confirmDeleteBtn.dataset.modelName;
     
-    // 删除模型
+    // 从UI上移除卡片
+    let cardToRemove;
     switch (modelType) {
         case 'reasoner':
-            delete configData.reasoner_models[modelName];
+            cardToRemove = reasonerModelsContainer.querySelector(`[data-model-name="${modelName}"]`);
             break;
         case 'target':
-            delete configData.target_models[modelName];
+            cardToRemove = targetModelsContainer.querySelector(`[data-model-name="${modelName}"]`);
             break;
         case 'composite':
-            delete configData.composite_models[modelName];
+            cardToRemove = compositeModelsContainer.querySelector(`[data-model-name="${modelName}"]`);
             break;
     }
-    
-    // 重新渲染模型
-    renderModels();
+    if (cardToRemove) {
+        cardToRemove.remove();
+    }
     
     // 关闭对话框
     confirmDeleteModal.hide();
-    
+
     showToast(`模型 ${modelName} 已删除`, 'success');
+    setDirty(true);
 }
 
 /**
@@ -848,6 +653,7 @@ function showToast(message, type) {
  * 导出配置文件
  */
 async function exportConfiguration() {
+    showLoader(true);
     try {
         showToast('正在导出配置...', 'info');
         
@@ -889,6 +695,8 @@ async function exportConfiguration() {
     } catch (error) {
         console.error('导出配置时发生错误:', error);
         showToast('导出配置失败: ' + error.message, 'danger');
+    } finally {
+        showLoader(false);
     }
 }
 
@@ -919,14 +727,17 @@ function handleConfigFileSelect(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            const configContent = JSON.parse(e.target.result);
-            selectedConfigData = configContent;
-            
-            // 显示配置预览
-            displayConfigPreview(configContent);
+            const newConfig = JSON.parse(e.target.result);
+            selectedConfigData = newConfig;
+
+            // 获取当前配置
+            const currentConfig = collectConfigFromUI();
+
+            // 显示差异预览
+            displayConfigPreview(currentConfig, newConfig);
             configPreview.classList.remove('d-none');
             confirmImportBtn.disabled = false;
-            
+
         } catch (error) {
             showToast('配置文件格式不正确，请选择有效的JSON文件', 'danger');
             configFileInput.value = '';
@@ -940,42 +751,30 @@ function handleConfigFileSelect(event) {
 }
 
 /**
- * 显示配置预览
- * @param {Object} config - 配置数据
+ * 显示配置差异预览
+ * @param {Object} currentConfig - 当前UI的配置
+ * @param {Object} newConfig - 从文件读取的新配置
  */
-function displayConfigPreview(config) {
-    const preview = document.createElement('div');
-    preview.className = 'small';
-    
-    // 统计配置信息
-    const reasonerCount = Object.keys(config.reasoner_models || {}).length;
-    const targetCount = Object.keys(config.target_models || {}).length;
-    const compositeCount = Object.keys(config.composite_models || {}).length;
-    
-    // 检查是否有导出元数据
-    const exportTime = config._export_metadata?.export_time || '未知';
-    const exportSource = config._export_metadata?.source || '未知';
-    
-    preview.innerHTML = `
-        <div class="mb-2">
-            <strong>配置统计：</strong>
-        </div>
-        <ul class="mb-2">
-            <li>推理模型：${reasonerCount} 个</li>
-            <li>目标模型：${targetCount} 个</li>
-            <li>组合模型：${compositeCount} 个</li>
-        </ul>
-        <div class="mb-2">
-            <strong>导出信息：</strong>
-        </div>
-        <ul class="mb-0">
-            <li>导出时间：${exportTime}</li>
-            <li>来源：${exportSource}</li>
-        </ul>
-    `;
-    
+function displayConfigPreview(currentConfig, newConfig) {
+    const currentConfigStr = JSON.stringify(currentConfig, null, 2);
+    const newConfigStr = JSON.stringify(newConfig, null, 2);
+
+    const diff = Diff.diffLines(currentConfigStr, newConfigStr);
+    const fragment = document.createDocumentFragment();
+
+    diff.forEach((part) => {
+        const span = document.createElement('span');
+        if (part.added) {
+            span.className = 'diff-added';
+        } else if (part.removed) {
+            span.className = 'diff-removed';
+        }
+        span.appendChild(document.createTextNode(part.value));
+        fragment.appendChild(span);
+    });
+
     configPreviewContent.innerHTML = '';
-    configPreviewContent.appendChild(preview);
+    configPreviewContent.appendChild(fragment);
 }
 
 /**
@@ -987,6 +786,7 @@ async function handleConfigImport() {
         return;
     }
     
+    showLoader(true);
     try {
         showToast('正在导入配置...', 'info');
         
@@ -1021,6 +821,8 @@ async function handleConfigImport() {
     } catch (error) {
         console.error('导入配置时发生错误:', error);
         showToast('导入配置失败: ' + error.message, 'danger');
+    } finally {
+        showLoader(false);
     }
 }
 
@@ -1029,3 +831,103 @@ window.Config = {
     init: initConfig,
     load: loadConfigData
 };
+
+/**
+ * 显示/隐藏加载动画
+ * @param {boolean} show
+ */
+function showLoader(show) {
+    if (show) {
+        loaderOverlay.classList.remove('d-none');
+    } else {
+        loaderOverlay.classList.add('d-none');
+    }
+}
+
+/**
+ * 设置脏状态并更新UI
+ * @param {boolean} dirty
+ */
+function setDirty(dirty) {
+    if (isDirty === dirty) return;
+    isDirty = dirty;
+    if (dirty) {
+        saveAllBtn.classList.remove('btn-success');
+        saveAllBtn.classList.add('btn-warning', 'pulse');
+        document.title = `* ${originalPageTitle}`;
+    } else {
+        saveAllBtn.classList.add('btn-success');
+        saveAllBtn.classList.remove('btn-warning', 'pulse');
+        document.title = originalPageTitle;
+    }
+}
+
+/**
+ * 从UI收集所有配置数据
+ * @returns {Object}
+ */
+function collectConfigFromUI() {
+    const data = {
+        reasoner_models: {},
+        target_models: {},
+        composite_models: {},
+        proxy: {},
+        system: {}
+    };
+
+    // 收集推理模型
+    document.querySelectorAll('#reasoner-models-container .reasoner-model-card').forEach(card => {
+        const name = card.querySelector('.model-name').textContent;
+        const form = card.querySelector('.model-form');
+        data.reasoner_models[name] = {
+            model_id: form.querySelector('.model-id').value,
+            api_key: form.querySelector('.api-key').value,
+            api_base_url: form.querySelector('.api-base-url').value,
+            api_request_address: form.querySelector('.api-request-address').value,
+            is_origin_reasoning: form.querySelector('.is-origin-reasoning').checked,
+            is_valid: form.querySelector('.is-valid').checked,
+            proxy_open: form.querySelector('.is-proxy-open').checked
+        };
+    });
+
+    // 收集目标模型
+    document.querySelectorAll('#target-models-container .target-model-card').forEach(card => {
+        const name = card.querySelector('.model-name').textContent;
+        const form = card.querySelector('.model-form');
+        data.target_models[name] = {
+            model_id: form.querySelector('.model-id').value,
+            api_key: form.querySelector('.api-key').value,
+            api_base_url: form.querySelector('.api-base-url').value,
+            api_request_address: form.querySelector('.api-request-address').value,
+            model_format: form.querySelector('.model-format').value,
+            is_valid: form.querySelector('.is-valid').checked,
+            proxy_open: form.querySelector('.is-proxy-open').checked
+        };
+    });
+
+    // 收集组合模型
+    document.querySelectorAll('#composite-models-container .composite-model-card').forEach(card => {
+        const name = card.querySelector('.model-name').textContent;
+        const form = card.querySelector('.model-form');
+        data.composite_models[name] = {
+            model_id: form.querySelector('.model-id').value,
+            reasoner_models: form.querySelector('.reasoner-model-select').value,
+            target_models: form.querySelector('.target-model-select').value,
+            is_valid: form.querySelector('.is-valid').checked
+        };
+    });
+
+    // 收集代理设置
+    data.proxy.proxy_open = document.getElementById('proxy-open').checked;
+    data.proxy.proxy_address = document.getElementById('proxy-address').value.trim();
+
+    // 收集系统设置
+    const originInputs = document.querySelectorAll('.allow-origin');
+    data.system.allow_origins = Array.from(originInputs).map(input => input.value.trim()).filter(value => value);
+    data.system.log_level = document.getElementById('log-level').value;
+    data.system.api_key = document.getElementById('system-api-key').value.trim() || '123456';
+    data.system.save_deepseek_tokens = document.getElementById('save-deepseek-tokens').checked;
+    data.system.save_deepseek_tokens_max_tokens = parseInt(document.getElementById('deepseek-tokens-max').value) || 5;
+
+    return data;
+}
