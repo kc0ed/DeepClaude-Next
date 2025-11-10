@@ -8,34 +8,6 @@
 
 </div>
 
-<div>
-<h4 style="color: #FF9909"> 特别说明：
-<br />
-在最新的 1.0 版本，我们已经实现了配置界面，部署更简单。
-1.编程：推荐 DeepSeek r1 + Claude Sonnet 4 组合，效果最好；
-2.内容创作：推荐 DeepSeek r1 + Gemini 2.5 Flash 或 Gemini 2.5 Pro 组合，效果最好，并且可以完全免费使用。
-<br />
-对于不太会部署，只是希望使用上最强组合模型的朋友，可以直接访问 Erlich 个人网站自助购买按量付费的 API：https://erlich.fun/deepclaude-pricing
-也可以直接联系 Erlich（微信号：geekthings）</h4>
-</div>
-
-
-
-<details>
-<summary><strong> 赞助商：问小白 https://www.wenxiaobai.com （丝滑使用 DeepSeek r1 满血版， 支持联网、上传文件、图片、AI 创作 PPT 等）</strong></summary>
-<div>
-<img src="https://img.erlich.fun/personal-blog/uPic/vVXyGq.png" />
-<img src="https://img.erlich.fun/personal-blog/uPic/SIU8qx.png" />
-</div>
-</details>
-
----
-
-<details>
-<summary><strong> 友情链接：Ten Agent: https://github.com/TEN-framework/TEN-Agent </strong></summary>
-</details>
-
----
 
 <details>
 <summary><strong>更新日志：</strong></summary> 
@@ -123,13 +95,7 @@
 
 # How to run
 
-> 项目支持本地运行和服务器运行，推荐使用服务器部署，实现随时随处可访问的最强大语言模型服务，甚至可以完全免费使用。
-
-## 1. 获得运行所需的 API
-
-1. 获取 DeepSeek API，推荐采用 PPIO（派欧云）最新的 DeepSeek R1 0528，点击链接注册，新用户可以获得 15 元免费额度，再邀请人还可以获得 30 元：https://ppio.cn/user/register?invited_by=TXTPQF
-2. 获取 Claude 的 API KEY：https://console.anthropic.com。(也可采用其他中转服务，如 DMXapi、Openrouter 以及其他服务商的 API KEY)
-3. 获取 Gemini 的 API KEY：https://aistudio.google.com/apikey (有免费的额度，日常够用)
+> 项目支持本地运行和 Docker 部署。
 
 
 
@@ -178,8 +144,6 @@
 ---
 
 ## 3. 部署运行 (使用 Docker)
-
-** 极其推荐 Zeabur，然后通过 Zeabur 来购买新加坡或日本的服务器是最划算的，只要 2 美金就足够，如果你是新用户，可以点击：https://zeabur.com/referral?referralCode=ErlichLiu 我们一起获得奖励额度 **
 
 ✅ Step 1. 安装 Docker
 
@@ -269,22 +233,7 @@ API 密钥为默认的 123456，如果你在系统设置内进行修改，则改
 
 **注：本项目采用 uv 作为包管理器，这是一个更快速更现代的管理方式，用于替代 pip，你可以[在此了解更多](https://docs.astral.sh/uv/)**
 
-   # Automatic fork sync
-项目已经支持 Github Actions 自动更新 fork 项目的代码，保持你的 fork 版本与当前 main 分支保持一致。如需开启，请 frok 后在 Settings 中开启 Actions 权限即可。
-
-
 # Technology Stack
 - [FastAPI](https://fastapi.tiangolo.com/)
 - [UV as package manager](https://docs.astral.sh/uv/#project-management)
 - [Docker](https://www.docker.com/)
-
-# Star History
-
-[![Star History Chart](https://img.erlich.fun/personal-blog/uPic/DeepClaude&type=Date.jpg)](https://star-history.com/#ErlichLiu/DeepClaude&Date)
-
-# Buy me a coffee
-<img src="https://img.erlich.fun/personal-blog/uPic/IMG_3625.jpeg" alt="微信赞赏码" style="width: 400px;"/>
-
-# About Me
-- Email: erlichliu@gmail.com
-- Website: [Erlichliu](https://erlich.fun)
